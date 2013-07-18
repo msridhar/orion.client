@@ -3587,6 +3587,8 @@ parseStatement: true, parseSourceElement: true */
         if (extra.errors) {
             parseStatement = wrapThrowParseStatement(parseStatement);
             parseExpression = wrapThrow(parseExpression);
+            // recover from bad function body
+            parseFunctionSourceElements = wrapThrow(parseFunctionSourceElements);
             // this enables 'foo.<EOF>' to return something
             parseNonComputedProperty = wrapThrow(parseNonComputedProperty);
             consumeSemicolon = wrapThrow(consumeSemicolon);

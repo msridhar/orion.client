@@ -781,10 +781,12 @@ define(["plugins/esprima/esprimaVisitor", "plugins/esprima/types", "plugins/espr
 					callArgs[i] = paramTypes[i];
 				}
 			}
-			if (!node.body.extras) {
-				node.body.extras = {};
+			if (node.body) {
+				if (!node.body.extras) {
+					node.body.extras = {};
+				}
+				node.body.extras.isConstructor = isConstructor;
 			}
-			node.body.extras.isConstructor = isConstructor;
 
 			// add parameters to the current scope
 			var paramTypeObjs = [];

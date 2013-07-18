@@ -4175,6 +4175,14 @@ define(["plugins/esprima/esprimaJsContentAssist", "orion/assert", "esprima/espri
 			["prototype", "prototype : Object"]
 		]);
 	};
+	
+	tests["test tolerant parsing function 1"] = function() {
+		var results = computeContentAssist(
+			"var xxxyyy = {};\n" +
+			"function foo() {\n" +
+			"    if (xx", "xx");
+		testProposals(results, [["xxxyyy", "xxxyyy : {}"]]);
+	};	
 
 	return tests;
 });

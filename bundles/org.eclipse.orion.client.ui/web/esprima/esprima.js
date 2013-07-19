@@ -2989,7 +2989,19 @@ parseStatement: true, parseSourceElement: true */
             sourceElements.push(sourceElement);
         }
 
-        expect('}');
+		if (extra.errors) {
+			// continue parsing even with missing close
+			// brace.  This gives a better AST for the
+			// function body, as information about
+			// the parsed statements remain
+			try {
+				expect('}');
+			} catch (e) {
+				pushError(e);
+	        }
+		} else {
+			expect('}');
+		}
 
         state.labelSet = oldLabelSet;
         state.inIteration = oldInIteration;

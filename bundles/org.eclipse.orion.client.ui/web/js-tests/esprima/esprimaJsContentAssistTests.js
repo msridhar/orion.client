@@ -4207,6 +4207,41 @@ define(["plugins/esprima/esprimaJsContentAssist", "orion/assert", "esprima/espri
 		testProposals(results, [["bazz", "bazz : Number"]]);
 	};	
 
+	tests["test tolerant parsing function 5"] = function() {
+		var results = computeContentAssist(
+			"function foo(p) {\n" +
+			"    p.ffffff = false;\n" +
+			"    while (p.ff", "ff");
+		testProposals(results, [["ffffff", "ffffff : Boolean"]]);
+	};	
+
+	tests["test tolerant parsing function 6"] = function() {
+		var results = computeContentAssist(
+			"function foo(p) {\n" +
+			"    p.ffffff = false;\n" +
+			"    if (p) {\n" +
+			"        while (p.ff", "ff");
+		testProposals(results, [["ffffff", "ffffff : Boolean"]]);
+	};	
+
+	tests["test tolerant parsing function 7"] = function() {
+		var results = computeContentAssist(
+			"function foo(p) {\n" +
+			"    p.ffffff = false;\n" +
+			"    if (p) {\n" +
+			"        for (var q in p.ff", "ff");
+		testProposals(results, [["ffffff", "ffffff : Boolean"]]);
+	};	
+
+	tests["test tolerant parsing function 8"] = function() {
+		var results = computeContentAssist(
+			"function foo(p) {\n" +
+			"    p.ffffff = false;\n" +
+			"    if (p) {\n" +
+			"        for (var q in p) {\n" +
+			"            while (p.ff", "ff");
+		testProposals(results, [["ffffff", "ffffff : Boolean"]]);
+	};	
 
 	return tests;
 });

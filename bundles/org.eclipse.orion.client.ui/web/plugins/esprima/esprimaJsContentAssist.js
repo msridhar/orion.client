@@ -818,7 +818,7 @@ define(["plugins/esprima/esprimaVisitor", "plugins/esprima/typeEnvironment", "pl
 				return null;
 			}
 			var funcList = [];
-			var environment = typeEnv.createEnvironment({ buffer: buffer, uid : "local", offset : offset, indexer : this.indexer, globalObjName : findGlobalObject(root.comments, this.lintOptions), comments : root.comments });
+			var environmentPromise = typeEnv.createEnvironment({ buffer: buffer, uid : "local", offset : offset, indexer : this.indexer, globalObjName : findGlobalObject(root.comments, this.lintOptions), comments : root.comments });
 			var findIdentifier = function(node) {
 				if ((node.type === "Identifier" || node.type === "ThisExpression") && proposalUtils.inRange(offset, node.range, true)) {
 					toLookFor = node;
@@ -869,34 +869,37 @@ define(["plugins/esprima/esprimaVisitor", "plugins/esprima/typeEnvironment", "pl
 				return null;
 			}
 			// must defer inferring the containing function block until the end
-			environment.defer = funcList.pop();
-			if (environment.defer && toLookFor === environment.defer.id) {
-				// don't defer if target is name of function
-				delete environment.defer;
-			}
-
-			if (environment.defer) {
-				// remove these comments from consideration until we are inferring the deferred
-				environment.deferredComments = extractDocComments(environment.comments, environment.defer.range);
-			}
-
-			var target = typeInf.inferTypes(root, environment, this.lintOptions);
-			var lookupName = toLookFor.type === "Identifier" ? toLookFor.name : 'this';
-			var maybeType = environment.lookupTypeObj(lookupName, toLookFor.extras.target || target, true);
-			if (maybeType) {
-				// if it's a reference to a function type, suck out $$fntype
-				var allTypes = environment.getAllTypes();
-				if (fnTypeRef(maybeType.typeObj,allTypes)) {
-					inlineFunctionTypes(allTypes[maybeType.typeObj.name].$$fntype,allTypes);
-					maybeType.typeObj = allTypes[maybeType.typeObj.name].$$fntype;
+			var self = this;
+			var result = environmentPromise.then(function (environment) {
+				environment.defer = funcList.pop();
+				if (environment.defer && toLookFor === environment.defer.id) {
+					// don't defer if target is name of function
+					delete environment.defer;
 				}
-				var hover = typeUtils.styleAsProperty(lookupName, findName) + " : " + typeUtils.createReadableType(maybeType.typeObj, environment, true, 0, findName);
-				maybeType.hoverText = hover;
-				return maybeType;
-			} else {
-				return null;
-			}
-
+	
+				if (environment.defer) {
+					// remove these comments from consideration until we are inferring the deferred
+					environment.deferredComments = extractDocComments(environment.comments, environment.defer.range);
+				}
+	
+				var target = typeInf.inferTypes(root, environment, self.lintOptions);
+				var lookupName = toLookFor.type === "Identifier" ? toLookFor.name : 'this';
+				var maybeType = environment.lookupTypeObj(lookupName, toLookFor.extras.target || target, true);
+				if (maybeType) {
+					// if it's a reference to a function type, suck out $$fntype
+					var allTypes = environment.getAllTypes();
+					if (fnTypeRef(maybeType.typeObj,allTypes)) {
+						inlineFunctionTypes(allTypes[maybeType.typeObj.name].$$fntype,allTypes);
+						maybeType.typeObj = allTypes[maybeType.typeObj.name].$$fntype;
+					}
+					var hover = typeUtils.styleAsProperty(lookupName, findName) + " : " + typeUtils.createReadableType(maybeType.typeObj, environment, true, 0, findName);
+					maybeType.hoverText = hover;
+					return maybeType;
+				} else {
+					return null;
+				}
+			});
+			return result;
 		},
 		/**
 		 * Computes the hover information for the provided offset
@@ -909,6 +912,23 @@ define(["plugins/esprima/esprimaVisitor", "plugins/esprima/typeEnvironment", "pl
 			return this._internalFindDefinition(buffer, offset, false);
 		},
 
+		/**
+		 * for jump to declaration
+		 */
+		run : function(selectedText, text, selection) {
+			// pick midpoint of selection as offset
+			var offset = Math.floor((selection.start + selection.end) / 2);
+			var typePromise = this._internalFindDefinition(text, offset, false);
+			var result = typePromise.then(function (type) { 
+				if (type && type.range[0] && type.range[1]) {
+					return { selection: { start: type.range[0], end: type.range[1] } };
+				} else {
+					return null;
+				}
+			});
+			return result;
+		},
+		
 		/**
 		 * Computes a summary of the file that is suitable to be stored locally and used as a dependency
 		 * in another file

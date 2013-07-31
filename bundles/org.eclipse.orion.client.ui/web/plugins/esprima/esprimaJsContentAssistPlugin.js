@@ -27,5 +27,15 @@ define([
 		name: "Esprima based JavaScript content assist",
 		id: "orion.edit.contentassist.esprima"
 	});
+	var serviceImpl = {
+              run: function(text) {
+                  return { text: "fizz", selection: { start: 1, end: 2 } };
+              }
+          };
+      var serviceProperties = { 
+              name: "Jump To Decl",
+              key: ["e", true, true] // Ctrl+Shift+e
+          };
+	provider.registerServiceProvider("orion.edit.command",serviceImpl,serviceProperties);
 	provider.connect();
 });
